@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Secure authentication terminal for the Mwamini Platform.">
+    <title>Security Vault Terminal | Mwamini</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        .auth-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            background: radial-gradient(circle at top right, var(--accent-glow), transparent 40%), var(--bg-main);
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2.5rem;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-switcher {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-switcher button {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .form-switcher button.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        #register-form {
+            display: none;
+        }
+
+        .theme-toggle-fixed {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="theme-toggle" class="btn theme-toggle-fixed">Toggle Theme</button>
+
+    <main class="auth-wrapper">
+        <div class="glass-panel auth-container">
+            <div class="auth-header">
+                <h1>MWAMINI PLATFORM</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Identity Verification System</p>
+            </div>
+
+            <div class="form-switcher">
+                <button id="tab-login" class="active" onclick="toggleAuthMode('login')">Access Vault</button>
+                <button id="tab-register" onclick="toggleAuthMode('register')">Provision Identity</button>
+            </div>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="login-email">Network Email</label>
+                    <input type="email" id="login-email" class="search-input" required autocomplete="email" placeholder="operator@mwamini.org">
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Security Keyphrase</label>
+                    <input type="password" id="login-password" class="search-input" required autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Initialize Verification
+                </button>
+            </form>
+
+            <form id="register-form">
+                <div class="input-group">
+                    <label for="reg-name">Full Operator Name</label>
+                    <input type="text" id="reg-name" class="search-input" required placeholder="Jane Doe">
+                </div>
+                <div class="input-group">
+                    <label for="reg-email">Communications Email</label>
+                    <input type="email" id="reg-email" class="search-input" required autocomplete="email" placeholder="jane@domain.com">
+                </div>
+                <div class="input-group">
+                    <label for="reg-password">Establish Keyphrase</label>
+                    <input type="password" id="reg-password" class="search-input" required autocomplete="new-password" placeholder="Min 8 characters">
+                </div>
+                <button type="submit" id="reg-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Provision Credentials
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="supabase-config.js"></script>
+    <script>
+        // --- UI Interactions ---
+        function toggleAuthMode(mode) {
+            const isLogin = mode === 'login';
+            document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+            document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('tab-login').classList.toggle('active', isLogin);
+            document.getElementById('tab-register').classList.toggle('active', !isLogin);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type} active`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('active');
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+        // Theme Management
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme');
+            root.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // --- Authentication Logic ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            btn.disabled = true;
+            btn.innerText = "Verifying...";
+
+            try {
+                const { data, error } = await window.Mwamini.supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                
+                showToast("Access Granted. Routing to mainframe...");
+                
+                // Routing Logic based on Admin vs Customer
+                // For a robust system, check the 'profiles' table for role here.
+                const { data: profile } = await window.Mwamini.supabase.from('profiles').select('role').eq('id', data.user.id).single();
+                
+                setTimeout(() => {
+                    if (profile && profile.role === 'Admin') {
+                        window.location.replace('admin.html');
+                    } else {
+                        window.location.replace('dashboard.html');
+                    }
+                }, 1000);
+
+            } catch (err) {
+                showToast(err.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Initialize Verification";
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('reg-btn');
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+
+            if (password.length < 8) {
+                return showToast("Security Keyphrase must be at least 8 characters.", 'danger');
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Provisioning...";
+
+            try {
+                const { data, error } = await window.Mwamini.supabase.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { full_name: name } }
+                });
+                
+                if (error) throw error;
+
+                // Provision initial profile record
+                if (data.user) {
+                    await window.Mwamini.supabase.from('profiles').insert([{
+                        id: data.user.id,
+                        full_name: name,
+                        email: email,
+                        role: 'Customer', // Default role
+                        account_status: 'Active'
+                    }]);
+                }
+
+                showToast("Node registered successfully. Please login.");
+                toggleAuthMode('login');
+                e.target.reset();
+
+            } catch (err) {
+                showToast(err.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Provision Credentials";
+            }
+        });
+    </script>
+</body>
+</html>

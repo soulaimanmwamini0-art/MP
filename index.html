@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mwamini Complex Services & Global Trading Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Specific layouts for the multi-portal architecture */
+        .portal-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .nav-links a.active, .nav-links a:hover {
+            color: var(--accent);
+        }
+        .hero-banner {
+            padding: 5rem 2rem;
+            text-align: center;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+        }
+        .section-container {
+            display: none;
+            padding: 3rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .section-container.active {
+            display: block;
+        }
+        .grid-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .product-card, .log-card {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .media-preview {
+            width: 100%;
+            height: 200px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            background: #000;
+        }
+        .filter-bar {
+            display: flex;
+            wrap: wrap;
+            gap: 1rem;
+            background: var(--bg-surface);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 2rem;
+        }
+        .modal-content {
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2.5rem;
+        }
+        .announcement-banner {
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            color: #fff;
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            position: relative;
+        }
+        .tag {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            font-weight: bold;
+            width: max-content;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="top-announcement-bar" class="announcement-banner" style="display:none;"></div>
+
+    <nav class="portal-nav">
+        <div class="brand-title" style="font-size: 1.3rem; font-weight: 800; tracking: -1px; color: var(--text-main);">
+            MWAMINI <span style="color:var(--accent)">ECOSYSTEM</span>
+        </div>
+        <div class="nav-links">
+            <a onclick="switchSection('home')" id="link-home" class="active">Ecosystem Home</a>
+            <a onclick="switchSection('store')" id="link-store">Trading Store</a>
+            <a onclick="switchSection('academy')" id="link-academy">Learning Academy</a>
+            <a onclick="switchSection('repository')" id="link-repository">Repository Logs</a>
+            <a onclick="switchSection('engineering')" id="link-engineering">Engineering Track</a>
+        </div>
+        <div style="display:flex; gap:1rem; align-items:center;">
+            <button id="theme-toggle" class="btn" style="padding:0.5rem 1rem;">Theme</button>
+            <a href="login.html" id="auth-nav-btn" class="btn btn-primary" style="padding:0.5rem 1rem; text-decoration:none;">Access Terminal</a>
+        </div>
+    </nav>
+
+    <main id="section-home" class="section-container active">
+        <div class="hero-banner">
+            <h1 style="font-size: 3.5rem; margin-bottom: 1rem;">Integrated Global Supply &amp; Engineering Matrix</h1>
+            <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto; font-size: 1.2rem;">
+                An enterprise ecosystem blending industrial engineering telemetry, verified cross-border trading matrices, cryptographic asset archives, and continuous knowledge transfer protocols.
+            </p>
+        </div>
+
+        <h2 style="margin-top: 3rem; border-left: 4px solid var(--accent); padding-left: 1rem;">Broadcasted System Announcements</h2>
+        <div id="home-announcements-grid" class="grid-matrix"></div>
+    </main>
+
+    <section id="section-store" class="section-container">
+        <h2>Trading Store Terminal</h2>
+        <p style="color:var(--text-muted); margin-bottom: 2rem;">Secure direct order allocation with real-time automated stock level alignment.</p>
+        
+        <div class="filter-bar">
+            <input type="text" id="store-search" class="search-input" placeholder="Live search catalog via SKU, Title, Tag..." oninput="filterStoreCatalog()">
+            <select id="store-category" class="filter-select" onchange="filterStoreCatalog()">
+                <option value="All Categories">All Categories</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Construction">Construction</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Food Materials">Food Materials</option>
+                <option value="Grain">Grain</option>
+                <option value="Services">Services</option>
+                <option value="Others">Others</option>
+            </select>
+            <select id="store-price" class="filter-select" onchange="filterStoreCatalog()">
+                <option value="all">Any Price Bracket</option>
+                <option value="low">Under 100 USD / RWF equivalent</option>
+                <option value="high">100 USD+ Value Matrix</option>
+            </select>
+            <select id="store-sort" class="filter-select" onchange="filterStoreCatalog()">
+                <option value="newest">Sort: Newest Products</option>
+                <option value="popular">Sort: High Popularity</option>
+                <option value="featured">Sort: Featured Selection</option>
+            </select>
+        </div>
+
+        <div id="store-catalog-grid" class="grid-matrix"></div>
+    </section>
+
+    <section id="section-academy" class="section-container">
+        <h2>Learning Academy</h2>
+        <p style="color:var(--text-muted); margin-bottom: 2rem;">Authorized operations syllabi, training manuals, and interactive validation logs.</p>
+        <div id="academy-grid" class="grid-matrix"></div>
+    </section>
+
+    <section id="section-repository" class="section-container">
+        <h2>Cryptographic Repository Logs</h2>
+        <p style="color:var(--text-muted); margin-bottom: 2rem;">System architectural blueprints, secure PDFs, data sheets, and verified operational telemetry packages.</p>
+        <div id="repository-grid" class="grid-matrix"></div>
+    </section>
+
+    <section id="section-engineering" class="section-container">
+        <h2>Engineering Track &amp; Telemetry Updates</h2>
+        <p style="color:var(--text-muted); margin-bottom: 2rem;">Continuous Integration/Continuous Deployment notes, architectural upgrades, and prototyping pipeline records.</p>
+        <div id="engineering-grid" class="grid-matrix"></div>
+    </section>
+
+    <div id="detail-modal" class="modal">
+        <div class="glass-panel modal-content" id="modal-body"></div>
+    </div>
+
+    <div id="toast" class="toast-notification"></div>
+
+    <script src="supabase-config.js"></script>
+    <script>
+        let globalProducts = [];
+        let globalUser = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            setupThemeManager();
+            await checkAuthenticationState();
+            await syncEcosystemData();
+        });
+
+        function setupThemeManager() {
+            const toggle = document.getElementById('theme-toggle');
+            const root = document.documentElement;
+            toggle.addEventListener('click', () => {
+                const current = root.getAttribute('data-theme');
+                root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+            });
+        }
+
+        async function checkAuthenticationState() {
+            const session = await window.Mwamini.getSecureSession();
+            if (session?.user) {
+                globalUser = session.user;
+                document.getElementById('auth-nav-btn').innerText = "Dashboard Panel";
+                document.getElementById('auth-nav-btn').href = "dashboard.html";
+            }
+        }
+
+        function switchSection(sectionId) {
+            document.querySelectorAll('.section-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            document.getElementById(`link-${sectionId}`).classList.add('active');
+        }
+
+        function triggerNotification(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.className = `toast-notification ${isError ? 'danger' : 'success'} active`;
+            t.innerText = msg;
+            setTimeout(() => t.classList.remove('active'), 4000);
+        }
+
+        async function syncEcosystemData() {
+            try {
+                // Synchronize Announcements
+                const { data: ann } = await window.Mwamini.supabase.from('announcements')
+                    .select('*').order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
+                renderAnnouncements(ann || []);
+
+                // Synchronize Trading Store Products
+                const { data: prod } = await window.Mwamini.supabase.from('products').select('*').order('created_at', { ascending: false });
+                globalProducts = prod || [];
+                renderStoreCatalog(globalProducts);
+
+                // Synchronize LMS Courses
+                const { data: courses } = await window.Mwamini.supabase.from('courses').select('*').order('created_at', { ascending: false });
+                renderAcademy(courses || []);
+
+                // Synchronize Document Repositories
+                const { data: repo } = await window.Mwamini.supabase.from('repository').select('*').order('created_at', { ascending: false });
+                renderRepository(repo || []);
+
+                // Synchronize Engineering Progress Updates
+                const { data: eng } = await window.Mwamini.supabase.from('engineering_track').select('*').order('created_at', { ascending: false });
+                renderEngineeringTrack(eng || []);
+
+            } catch (err) {
+                console.error("Synchronization execution structural fault:", err);
+            }
+        }
+
+        function renderAnnouncements(data) {
+            const grid = document.getElementById('home-announcements-grid');
+            grid.innerHTML = '';
+            
+            const pinned = data.find(a => a.is_pinned && a.active);
+            if (pinned) {
+                const banner = document.getElementById('top-announcement-bar');
+                banner.innerText = `CRITICAL BROADCAST: ${pinned.text}`;
+                banner.style.display = 'block';
+            }
+
+            const activeAnnouncements = data.filter(a => a.active);
+            if(activeAnnouncements.length === 0) {
+                grid.innerHTML = `<p style="color:var(--text-muted)">No active operational directives issued.</p>`;
+                return;
+            }
+
+            activeAnnouncements.forEach(a => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel product-card';
+                card.innerHTML = `
+                    ${a.image_url ? `<img src="${a.image_url}" class="media-preview" alt="Broadcast Media">` : ''}
+                    ${a.video_url ? `<video src="${a.video_url}" controls class="media-preview"></video>` : ''}
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="tag">${a.is_pinned ? 'CRITICAL DIRECTIVE' : 'GENERAL SYSTEM NOTICE'}</span>
+                        <small style="color:var(--text-muted)">${new Date(a.created_at).toLocaleDateString()}</small>
+                    </div>
+                    <p style="font-weight:500; margin: 0.5rem 0;">${a.text}</p>
+                    ${a.description ? `<p style="font-size:0.85rem; color:var(--text-muted);">${a.description}</p>` : ''}
+                    ${a.links ? `<a href="${a.links}" target="_blank" class="btn" style="margin-top:auto; font-size:0.8rem;">Access Attachment Vector</a>` : ''}
+                    <div style="margin-top:1rem; border-top:1px solid var(--border-color); padding-top:1rem;">
+                        <button class="btn" style="width:100%; font-size:0.8rem;" onclick="openCommentStream('announcements', '${a.id}', '${a.text.substring(0,25)}')">View Comment Stream</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderStoreCatalog(products) {
+            const grid = document.getElementById('store-catalog-grid');
+            grid.innerHTML = '';
+            if (products.length === 0) {
+                grid.innerHTML = `<p style="color:var(--text-muted)">No commodities found matching current search configuration guidelines.</p>`;
+                return;
+            }
+            products.forEach(p => {
+                const isOut = p.quantity <= 0 || p.status === 'Out of stock';
+                const card = document.createElement('div');
+                card.className = 'glass-panel product-card';
+                card.innerHTML = `
+                    <img src="${p.thumbnail_url || p.image_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=500&q=80'}" class="media-preview" alt="Commodity Graphic Asset">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <h3 style="font-size:1.15rem; margin-bottom:0.25rem;">${p.title}</h3>
+                            <span class="tag">${p.category}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:1.25rem; font-weight:800; color:var(--accent);">${p.price} ${p.currency || 'USD'}</div>
+                            <small style="color:${isOut ? 'var(--danger)' : 'var(--success)'}; font-weight:600;">
+                                ${isOut ? 'OUT OF STOCK' : `${p.quantity} Units Available`}
+                            </small>
+                        </div>
+                    </div>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.4;">${p.short_description || p.description || ''}</p>
+                    <div style="margin-top:auto; display:flex; gap:0.5rem; padding-top:1rem;">
+                        <button class="btn" style="flex:1;" onclick="viewProductDetails('${p.id}')">Inspect Spec Sheet</button>
+                        <button class="btn btn-primary" style="flex:1;" ${isOut ? 'disabled' : ''} onclick="executeDirectOrder('${p.id}')">
+                            ${isOut ? 'Allocation Locked' : 'Instantly Allocate'}
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterStoreCatalog() {
+            const searchVal = document.getElementById('store-search').value.toLowerCase();
+            const catVal = document.getElementById('store-category').value;
+            const priceVal = document.getElementById('store-price').value;
+            const sortVal = document.getElementById('store-sort').value;
+
+            let filtered = [...globalProducts];
+
+            if (searchVal) {
+                filtered = filtered.filter(p => p.title.toLowerCase().includes(searchVal) || 
+                    (p.sku && p.sku.toLowerCase().includes(searchVal)) ||
+                    (p.tags && p.tags.toLowerCase().includes(searchVal)));
+            }
+
+            if (catVal !== "All Categories") {
+                filtered = filtered.filter(p => p.category === catVal);
+            }
+
+            if (priceVal === "low") {
+                filtered = filtered.filter(p => p.price < 100);
+            } else if (priceVal === "high") {
+                filtered = filtered.filter(p => p.price >= 100);
+            }
+
+            if (sortVal === "newest") {
+                filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (sortVal === "featured") {
+                filtered = filtered.filter(p => p.status === 'Available');
+            }
+
+            renderStoreCatalog(filtered);
+        }
+
+        async function viewProductDetails(id) {
+            const p = globalProducts.find(item => item.id === id);
+            if (!p) return;
+            const isOut = p.quantity <= 0 || p.status === 'Out of stock';
+
+            // Fetch product reviews/comments
+            const { data: revs } = await window.Mwamini.supabase.from('reviews').select('*').eq('product_id', id);
+
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; border-bottom:1px solid var(--border-color); padding-bottom:1rem;">
+                    <h2>System Specifications Matrix: ${p.title}</h2>
+                    <button class="btn" onclick="closeModal()">Close Screen</button>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
+                    <div>
+                        <img src="${p.image_url || p.thumbnail_url || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=500&q=80'}" style="width:100%; border-radius:var(--radius-md); max-height:350px; object-fit:cover; margin-bottom:1rem;">
+                        ${p.video_url ? `<video src="${p.video_url}" controls style="width:100%; border-radius:var(--radius-md); background:#000; height:200px;"></video>` : ''}
+                        
+                        <h4 style="margin-top:1.5rem; margin-bottom:0.5rem;">Core Parameters Sheet</h4>
+                        <p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Global SKU Registry:</strong> ${p.sku || 'N/A'}</p>
+                        <p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Brand/Manufacturer Validation:</strong> ${p.brand || 'Mwamini Specification'}</p>
+                        <p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Logistical Origin Location:</strong> ${p.location || 'Central Infrastructure Hub'}</p>
+                        <p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Fulfillment Strategy &amp; Delivery:</strong> ${p.delivery_information || 'Standard Authorized Dispatch Line'}</p>
+                        <p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Warranty Provision Vector:</strong> ${p.warranty || 'Comprehensive Enterprise Coverage'}</p>
+                    </div>
+                    <div>
+                        <span class="tag">${p.category}</span>
+                        <div style="font-size:2rem; font-weight:900; color:var(--accent); margin:1rem 0;">${p.price} ${p.currency || 'USD'}</div>
+                        
+                        <h3>Fulfillment Summary</h3>
+                        <p style="color:var(--text-muted); margin-bottom:1rem;">${p.long_description || p.description || 'No deeper log files provided.'}</p>
+                        
+                        ${p.specifications ? `<div style="background:var(--bg-main); padding:1rem; border-radius:8px; margin-bottom:1rem;"><strong>Structural Specs:</strong><br><span style="font-size:0.85rem; font-family:monospace;">${p.specifications}</span></div>` : ''}
+                        ${p.features ? `<p style="font-size:0.9rem; margin-bottom:0.5rem;"><strong>Primary Mechanics:</strong> ${p.features}</p>` : ''}
+                        ${p.benefits ? `<p style="font-size:0.9rem; margin-bottom:1.5rem;"><strong>Operational Benefits:</strong> ${p.benefits}</p>` : ''}
+
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" style="flex:2; padding:1rem;" ${isOut ? 'disabled' : ''} onclick="executeDirectOrder('${p.id}')">
+                                ${isOut ? 'Asset Depot Exhausted' : 'Execute Absolute Order'}
+                            </button>
+                            <button class="btn" style="flex:1;" onclick="addAssetToWishlist('${p.id}')">Wishlist</button>
+                            <button class="btn" onclick="navigator.clipboard.writeText(window.location.href); triggerNotification('Asset address link copied to tracking buffer.')">Share</button>
+                        </div>
+
+                        <div style="margin-top:2rem; border-top:1px solid var(--border-color); padding-top:1.5rem;">
+                            <h4>Operator Performance Evaluation Feed</h4>
+                            <div id="modal-reviews-container" style="max-height:200px; overflow-y:auto; margin:1rem 0; background:var(--bg-main); padding:0.5rem; border-radius:6px;">
+                                ${(revs && revs.length > 0) ? revs.map(r => `<div style="border-bottom:1px solid var(--border-color); padding:0.5rem 0;"><div style="display:flex; justify-content:between;"><strong>${r.full_name || 'Anonymous Operator'}</strong> <span style="color:var(--warning);">${'★'.repeat(r.rating || 5)}</span></div><p style="font-size:0.85rem; color:var(--text-muted);">${r.comment || ''}</p></div>`).join('') : '<p style="color:var(--text-muted); font-size:0.85rem;">No evaluation log entries posted yet.</p>'}
+                            </div>
+                            
+                            <h5>Append Telemetry Evaluation</h5>
+                            <form onsubmit="submitReviewVector(event, '${p.id}')" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                                <input type="number" id="new-rev-rating" min="1" max="5" class="search-input" placeholder="Rating Matrix Score (1-5)" required>
+                                <textarea id="new-rev-comment" class="search-input" placeholder="Verbatim performance ledger text..." required style="height:60px;"></textarea>
+                                <button type="submit" class="btn btn-primary" style="font-size:0.8rem; padding:0.5rem;">Log Feedback Block</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+
+        async function executeDirectOrder(id) {
+            if (!globalUser) {
+                triggerNotification("Authentication missing. Route to the Security Vault Terminal.", true);
+                setTimeout(() => window.location.href = 'login.html', 1500);
+                return;
+            }
+            const p = globalProducts.find(item => item.id === id);
+            if (!p || p.quantity <= 0) {
+                triggerNotification("Allocation failed: Item stock has reached zero baseline parameters.", true);
+                return;
+            }
+
+            try {
+                // Decrement target stock quantity safely via transactional subtraction logic
+                const finalQty = p.quantity - 1;
+                const finalStatus = finalQty <= 0 ? 'Out of stock' : p.status;
+
+                const { error: updateErr } = await window.Mwamini.supabase.from('products')
+                    .update({ quantity: finalQty, status: finalStatus })
+                    .eq('id', id);
+
+                if (updateErr) throw updateErr;
+
+                // Create Order record architecture
+                const { error: orderErr } = await window.Mwamini.supabase.from('orders').insert([{
+                    user_id: globalUser.id,
+                    items: [{ product_id: p.id, title: p.title, price: p.price, quantity: 1 }],
+                    total_amount: p.price,
+                    status: 'Pending',
+                    delivery_location: 'Requested central logistics destination endpoint'
+                }]);
+
+                if (orderErr) throw orderErr;
+
+                triggerNotification(`Order executed successfully. Asset reserved inside database.`);
+                await syncEcosystemData();
+                closeModal();
+
+            } catch (err) {
+                triggerNotification(`Execution error: ${err.message}`, true);
+            }
+        }
+
+        async function addAssetToWishlist(id) {
+            if (!globalUser) return triggerNotification("Please log in to preserve wishlist vectors.", true);
+            try {
+                const { error } = await window.Mwamini.supabase.from('wishlist').insert([{ user_id: globalUser.id, product_id: id }]);
+                if (error) throw error;
+                triggerNotification("Asset tracking sequence appended to custom user profile.");
+            } catch(e) { triggerNotification(e.message, true); }
+        }
+
+        async function submitReviewVector(e, productId) {
+            e.preventDefault();
+            if(!globalUser) return triggerNotification("Identity verification missing.", true);
+            const score = document.getElementById('new-rev-rating').value;
+            const text = document.getElementById('new-rev-comment').value;
+            try {
+                const { error } = await window.Mwamini.supabase.from('reviews').insert([{
+                    product_id: productId,
+                    user_id: globalUser.id,
+                    full_name: globalUser.email,
+                    rating: parseInt(score),
+                    comment: text
+                }]);
+                if (error) throw error;
+                triggerNotification("Telemetry metrics cataloged successfully.");
+                viewProductDetails(productId);
+            } catch(err) { triggerNotification(err.message, true); }
+        }
+
+        function renderAcademy(data) {
+            const grid = document.getElementById('academy-grid');
+            grid.innerHTML = '';
+            if(data.length === 0) { grid.innerHTML = `<p style="color:var(--text-muted)">No specialized syllabus courses verified.</p>`; return; }
+            data.forEach(c => {
+                if(c.visibility === 'Hidden') return;
+                const card = document.createElement('div');
+                card.className = 'glass-panel product-card';
+                card.innerHTML = `
+                    <span class="tag">${c.category || 'Standard Blueprint'}</span>
+                    <h3 style="font-size:1.2rem; margin:0.5rem 0;">${c.title}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">${c.description || ''}</p>
+                    ${c.video_url ? `<video src="${c.video_url}" controls class="media-preview" style="height:150px; margin-top:0.5rem;"></video>` : ''}
+                    ${c.document_url ? `<a href="${c.document_url}" target="_blank" class="btn" style="margin-top:auto; font-size:0.8rem;">Download Documentation Material</a>` : ''}
+                    <button class="btn" style="font-size:0.8rem; margin-top:0.5rem;" onclick="openCommentStream('academy', '${c.id}', '${c.title.substring(0,20)}')">Course Thread Comments</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderRepository(data) {
+            const grid = document.getElementById('repository-grid');
+            grid.innerHTML = '';
+            if(data.length === 0) { grid.innerHTML = `<p style="color:var(--text-muted)">Security vaults indicate zero uploaded log bundles.</p>`; return; }
+            data.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel product-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="tag">${r.category || 'General Registry'}</span>
+                        <code style="font-size:0.75rem; color:var(--accent);">${r.file_type || 'DATA'}</code>
+                    </div>
+                    <h3 style="font-size:1.1rem; margin:0.5rem 0;">${r.title}</h3>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">Permission Level Context: ${r.permissions || 'Public View'}</p>
+                    <a href="${r.file_url}" target="_blank" class="btn btn-primary" style="margin-top:auto; font-size:0.85rem;">Download Data Package</a>
+                    <button class="btn" style="font-size:0.8rem; margin-top:0.5rem;" onclick="openCommentStream('repository', '${r.id}', '${r.title.substring(0,20)}')">Log System Discussion</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderEngineeringTrack(data) {
+            const grid = document.getElementById('engineering-grid');
+            grid.innerHTML = '';
+            if(data.length === 0) { grid.innerHTML = `<p style="color:var(--text-muted)">No ongoing architecture or pipeline progress benchmarks reported.</p>`; return; }
+            data.forEach(e => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel product-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="tag">${e.category || 'R&D Lab'}</span>
+                        <strong style="color:var(--warning); font-size:0.85rem;">Progress Vector: ${e.progress || 0}%</strong>
+                    </div>
+                    <h3 style="font-size:1.15rem; margin:0.5rem 0;">${e.project_name}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">${e.description || ''}</p>
+                    ${e.update_text ? `<div style="background:var(--bg-main); padding:0.5rem; font-size:0.8rem; border-radius:4px; font-family:monospace;">LOG: ${e.update_text}</div>` : ''}
+                    ${e.image_url ? `<img src="${e.image_url}" class="media-preview" style="height:120px; margin-top:0.5rem;">` : ''}
+                    <button class="btn" style="font-size:0.8rem; margin-top:auto;" onclick="openCommentStream('engineering', '${e.id}', '${e.project_name.substring(0,20)}')">Pipeline Feedback Loop</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function openCommentStream(contextType, contextId, shortTitle) {
+            const { data: comments } = await window.Mwamini.supabase.from('comments')
+                .select('*').eq('context_type', contextType).eq('context_id', contextId);
+
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid var(--border-color); padding-bottom:1rem;">
+                    <h3>Unified Stream: ${shortTitle} Comments</h3>
+                    <button class="btn" onclick="closeModal()">Close Panel</button>
+                </div>
+                <div style="max-height:300px; overflow-y:auto; background:var(--bg-main); padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
+                    ${(comments && comments.length > 0) ? comments.map(c => `
+                        <div style="border-bottom:1px solid var(--border-color); padding:0.75rem 0; ${c.is_pinned ? 'border-left:3px solid var(--warning); padding-left:0.5rem;' : ''}">
+                            <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                                <strong>${c.full_name || 'System User'} ${c.is_pinned ? '📌 [Pinned by Matrix Admin]' : ''}</strong>
+                                <small style="color:var(--text-muted);">${new Date(c.created_at).toLocaleDateString()}</small>
+                            </div>
+                            <p style="font-size:0.9rem; margin-top:0.25rem;">${c.text}</p>
+                            ${c.reply_text ? `<div style="margin-top:0.5rem; background:var(--bg-surface); padding:0.5rem; border-radius:4px; font-size:0.85rem; border-left:2px solid var(--accent);"><strong>Admin Core Response:</strong> ${c.reply_text}</div>` : ''}
+                        </div>
+                    `).join('') : '<p style="color:var(--text-muted); font-size:0.9rem;">No entries cataloged inside this feedback streamline vector.</p>'}
+                </div>
+                <form onsubmit="submitContextComment(event, '${contextType}', '${contextId}')" style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <textarea id="new-ctx-comment" class="search-input" placeholder="Compose regulatory comment payload to transmit..." required style="height:80px;"></textarea>
+                    <button type="submit" class="btn btn-primary">Transmit Broadcast Stream Input</button>
+                </form>
+            `;
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        async function submitContextComment(e, type, cid) {
+            e.preventDefault();
+            if(!globalUser) return triggerNotification("Identity credential evaluation failed. Lock terminal.", true);
+            const text = document.getElementById('new-ctx-comment').value;
+            try {
+                const { error } = await window.Mwamini.supabase.from('comments').insert([{
+                    context_type: type,
+                    context_id: cid,
+                    user_id: globalUser.id,
+                    full_name: globalUser.email,
+                    text: text,
+                    is_approved: true
+                }]);
+                if (error) throw error;
+                triggerNotification("Comment integrated into ecosystem database channel.");
+                closeModal();
+            } catch(err) { triggerNotification(err.message, true); }
+        }
+    </script>
+</body>
+</html>
