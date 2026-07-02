@@ -4,98 +4,673 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mwamini Ecosystem | Secured Administrative Mainframe</title>
+    
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        .admin-workspace { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
-        .aside-control { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .panel-view { padding: 2rem; display: none; }
-        .panel-view.active { display: block; }
-        .badge-admin { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; }
-        .badge-operator { background: var(--success); color: white; padding: 2px 8px; border-radius: 4px; }
+        .admin-workspace {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh;
+        }
+
+        .aside-control {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-menu {
+            padding: 0 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .main-viewport {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-main);
+        }
+
+        .top-navbar {
+            height: 70px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2.5rem;
+            z-index: 40;
+        }
+
+        .content-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .admin-tab {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        .admin-tab.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-btn {
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+            padding: 0.85rem 1rem;
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+        }
+        .nav-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-admin { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge-operator { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge-guest { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+        .data-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-top: 1rem;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+        .data-table th {
+            background: rgba(0,0,0,0.02);
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        
+        .metrics-grid-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .metric-block {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .metric-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .metric-val { font-size: 2rem; font-weight: 800; color: var(--text-main); margin-top: 0.5rem; }
+
+        .chart-analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .chart-wrapper {
+            height: 350px;
+            position: relative;
+        }
+
+        #security-blocker {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            color: #ef4444;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            text-align: center;
+            padding: 2rem;
+        }
     </style>
 </head>
 <body>
 
-    <div class="admin-workspace">
+    <div id="security-blocker">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">[ SECURITY VERIFICATION IN PROGRESS ]</h1>
+        <p id="security-msg" style="font-size: 1.2rem; color: #f8fafc;">Validating cryptographic tokens and role permissions...</p>
+        <div style="margin-top: 2rem; width: 50px; height: 50px; border: 4px solid #ef4444; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+    <div class="admin-workspace" id="admin-mainframe" style="display:none;">
         <aside class="aside-control">
             <div class="sidebar-header">
-                <h2>MWAMINI CORE</h2>
-                <p id="admin-identity">Initializing...</p>
+                <div style="font-weight:900; font-size:1.25rem; letter-spacing: 1px; color:var(--text-main);">MWAMINI CORE</div>
+                <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span id="ui-role-badge" class="badge">Loading...</span>
+                </div>
             </div>
-            <nav class="sidebar-menu">
-                <button class="btn" onclick="switchPanel('dashboard')">Mainframe Analytics</button>
-                <button class="btn" onclick="switchPanel('users')">User Registry</button>
-            </nav>
+            
+            <nav class="sidebar-menu" id="dynamic-nav-container"></nav>
+            
+            <div class="sidebar-footer">
+                <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all;" id="ui-user-email">...</div>
+                <button class="btn" id="theme-toggle" style="width: 100%; border: 1px solid var(--border-color);">Toggle Theme</button>
+                <button class="btn" id="logout-btn" style="background:var(--danger); color:white; width: 100%; border:none;">Terminate Session</button>
+            </div>
         </aside>
 
-        <main id="content-area">
-            <section id="dashboard" class="panel-view active">
-                <h1>Mainframe Analytics</h1>
-                <div class="admin-card"><canvas id="activityChart"></canvas></div>
-            </section>
-            <section id="users" class="panel-view">
-                <h1>User Registry</h1>
-                <table>
-                    <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
-                    <tbody id="users-tbody"></tbody>
-                </table>
-            </section>
+        <main class="main-viewport">
+            <header class="top-navbar">
+                <div><h2 id="view-title" style="font-size: 1.25rem;">Dashboard Analytics</h2></div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="index.html" class="btn" style="font-size: 0.85rem;">Public Portal ↗</a>
+                </div>
+            </header>
+
+            <div class="content-scroll-area" id="main-content-scroll">
+                
+                <section id="tab-analytics" class="admin-tab active">
+                    <p style="color:var(--text-muted); margin-bottom:2rem;">Real-time automated parameter computations and platform health telemetry.</p>
+                    
+                    <div class="metrics-grid-matrix">
+                        <div class="glass-panel metric-block"><div class="metric-title">Total Orders</div><div class="metric-val" id="m-tot-orders">0</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Total Products</div><div class="metric-val" id="m-tot-products">0</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Inventory Volume</div><div class="metric-val" id="m-tot-qty">0</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Capital Valuation</div><div class="metric-val" id="m-tot-assets">$0.00</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Cumulative Revenue</div><div class="metric-val" id="m-tot-rev">$0.00</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Registered Users</div><div class="metric-val" id="m-tot-users">0</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Pending Tickets</div><div class="metric-val" id="m-open-tkt">0</div></div>
+                        <div class="glass-panel metric-block"><div class="metric-title">Out of Stock</div><div class="metric-val" id="m-out-stock" style="color:var(--danger);">0</div></div>
+                    </div>
+
+                    <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">System Graphical Analyses</h3>
+                    <div class="chart-analytics-grid">
+                        <div class="glass-panel chart-wrapper"><canvas id="c-daily-sales"></canvas></div>
+                        <div class="glass-panel chart-wrapper"><canvas id="c-order-pie"></canvas></div>
+                    </div>
+                </section>
+
+                <section id="tab-inventory" class="admin-tab">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <p style="color:var(--text-muted); max-width: 600px;">Add, alter, duplicate, disable, and perform mass transformations across the global product catalog.</p>
+                        <button class="btn btn-primary" onclick="toggleProductForm()">+ Provision New Asset</button>
+                    </div>
+
+                    <div id="product-form-panel" class="glass-panel" style="display:none; margin-bottom:2rem;">
+                        <h3 id="form-action-title" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Register New Asset</h3>
+                        <form id="matrix-asset-form" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem;">
+                            <input type="hidden" id="f-asset-id">
+                            <div class="input-group"><label>Asset Title</label><input type="text" id="f-title" class="form-control" required></div>
+                            <div class="input-group">
+                                <label>Category</label>
+                                <select id="f-category" class="form-control">
+                                    <option value="Agriculture">Agriculture</option><option value="Construction">Construction</option>
+                                    <option value="Electronics">Electronics</option><option value="Electrical">Electrical</option>
+                                    <option value="Food Materials">Food Materials</option><option value="Services">Services</option>
+                                </select>
+                            </div>
+                            <div class="input-group"><label>Price Unit Value</label><input type="number" step="0.01" id="f-price" class="form-control" required></div>
+                            <div class="input-group"><label>Currency</label><input type="text" id="f-currency" class="form-control" value="USD" required></div>
+                            <div class="input-group"><label>Stock Quantity</label><input type="number" id="f-qty" class="form-control" required></div>
+                            <div class="input-group"><label>SKU Code</label><input type="text" id="f-sku" class="form-control" required></div>
+                            <div class="input-group"><label>Availability Status</label>
+                                <select id="f-status" class="form-control">
+                                    <option value="Available">Available</option>
+                                    <option value="Out of stock">Out of Stock</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="grid-column: 1 / -1;"><label>Primary Image URL</label><input type="url" id="f-img" class="form-control"></div>
+                            
+                            <div style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:1rem; margin-top:1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                                <button type="button" class="btn" onclick="toggleProductForm()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Commit Specifications</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>Asset Details</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-tbody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="tab-orders" class="admin-tab">
+                    <p style="color:var(--text-muted); margin-bottom:1.5rem;">Review, authorize, update, or cancel live cross-border commodity supply allocations.</p>
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order Token</th>
+                                    <th>Operator Link</th>
+                                    <th>Valuation</th>
+                                    <th>State</th>
+                                    <th style="text-align:right;">Process Transitions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-tbody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="tab-users" class="admin-tab">
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 2rem;">
+                        <h4 style="color: var(--danger); margin-bottom: 0.25rem;">RESTRICTED ACCESS ZONE</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">This panel manages cryptographic identities and role assignments. Strict auditing is in effect.</p>
+                    </div>
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Email / Identity</th>
+                                    <th>Full Name</th>
+                                    <th>Registration Date</th>
+                                    <th>Security Role</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
+    <div id="toast" class="toast-notification"></div>
+
     <script src="supabase-config.js"></script>
     <script>
-        /**
-         * ROBUST SECURITY GATEWAY
-         * Ensures continuous session validation and Role-Based Access Control.
-         */
-        async function secureGateway() {
-            // 1. Validate Session
-            const { data: { user }, error: authError } = await window.Mwamini.supabase.auth.getUser();
-            if (authError || !user) return window.location.replace('login.html');
+        const TAB_DEFINITIONS = {
+            analytics: { title: 'System Analytics', icon: '📊' },
+            inventory: { title: 'Inventory Matrix', icon: '📦' },
+            orders: { title: 'Order Queue', icon: '🛒' },
+            users: { title: 'User Registry', icon: '👥' }
+        };
 
-            // 2. Validate Role via Database
-            const { data: profile, error: dbError } = await window.Mwamini.supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
+        let currentUser = null;
+        let globalDataCache = {};
+        let chartInstancesList = {};
 
-            if (dbError || profile?.role !== 'Admin') {
-                console.error("Access Forbidden: Insufficient clearance.");
-                window.location.replace('dashboard.html');
-            } else {
-                document.getElementById('admin-identity').innerText = user.email;
-                loadAdminData();
+        window.addEventListener('DOMContentLoaded', async () => {
+            await enforceSecurityGateway();
+        });
+
+        async function enforceSecurityGateway() {
+            const blocker = document.getElementById('security-blocker');
+            const msg = document.getElementById('security-msg');
+
+            try {
+                const session = await window.Mwamini.getSecureSession();
+                if (!session?.user) throw new Error("No active cryptographic session detected.");
+
+                currentUser = session.user;
+                const role = await window.Mwamini.getUserRole(currentUser.id);
+                
+                if (role !== 'Admin') {
+                    throw new Error("Assigned role lacks mapping parameters. Administrator authorization denied.");
+                }
+
+                blocker.style.display = 'none';
+                document.getElementById('admin-mainframe').style.display = 'grid';
+                
+                initializeSecureUI();
+                await synchronizeGlobalData();
+
+            } catch (err) {
+                console.error("Gateway Rejection:", err);
+                msg.innerText = `ACCESS DENIED: ${err.message}. Routing to vault...`;
+                setTimeout(() => window.location.replace('login.html'), 2000);
             }
         }
 
-        function switchPanel(pid) {
-            document.querySelectorAll('.panel-view').forEach(p => p.classList.remove('active'));
-            document.getElementById(pid).classList.add('active');
+        function initializeSecureUI() {
+            document.getElementById('ui-user-email').innerText = currentUser.email;
+            
+            const badge = document.getElementById('ui-role-badge');
+            badge.innerText = 'Admin';
+            badge.className = `badge badge-admin`;
+
+            const navContainer = document.getElementById('dynamic-nav-container');
+            navContainer.innerHTML = '';
+            
+            Object.keys(TAB_DEFINITIONS).forEach((tabId, index) => {
+                const tabConf = TAB_DEFINITIONS[tabId];
+                const btn = document.createElement('button');
+                btn.className = `btn nav-btn ${index === 0 ? 'active' : ''}`;
+                btn.id = `navlink-${tabId}`;
+                btn.innerHTML = `<span style="margin-right:8px">${tabConf.icon}</span> ${tabConf.title}`;
+                btn.onclick = () => switchTab(tabId, tabConf.title);
+                navContainer.appendChild(btn);
+            });
+
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const root = document.documentElement;
+                root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+                if(globalDataCache.orders) drawCharts(); 
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                await window.Mwamini.supabase.auth.signOut();
+            });
         }
 
-        async function loadAdminData() {
-            const { data: users } = await window.Mwamini.supabase.from('profiles').select('*');
+        function switchTab(tabId, title) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`navlink-${tabId}`).classList.add('active');
+            document.getElementById('view-title').innerText = title;
+            document.getElementById('main-content-scroll').scrollTop = 0;
+        }
+
+        function triggerToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.className = `toast-notification active ${isError ? 'danger' : 'success'}`;
+            setTimeout(() => toast.classList.remove('active'), 4000);
+        }
+
+        async function synchronizeGlobalData() {
+            try {
+                const [resProd, resOrd, resUsers, resTkt] = await Promise.all([
+                    window.Mwamini.supabase.from('products').select('*').order('created_at', { ascending: false }),
+                    window.Mwamini.supabase.from('orders').select('*').order('created_at', { ascending: false }),
+                    window.Mwamini.supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+                    window.Mwamini.supabase.from('support_tickets').select('*').order('created_at', { ascending: false })
+                ]);
+
+                globalDataCache = {
+                    products: resProd.data || [],
+                    orders: resOrd.data || [],
+                    users: resUsers.data || [],
+                    tickets: resTkt.data || []
+                };
+
+                populateAnalyticsWidgets();
+                drawCharts();
+                renderInventoryTable();
+                renderOrdersTable();
+                renderUsersTable();
+
+            } catch (error) {
+                console.error("Sync Fault:", error);
+                triggerToast("Data synchronization fault. State may be stale.", true);
+            }
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        }
+
+        function populateAnalyticsWidgets() {
+            const { products, orders, users, tickets } = globalDataCache;
+
+            document.getElementById('m-tot-orders').innerText = orders.length;
+            document.getElementById('m-tot-products').innerText = products.length;
+            document.getElementById('m-tot-users').innerText = users.length;
+            document.getElementById('m-open-tkt').innerText = tickets.filter(t => t.status === 'Open').length;
+
+            let totalQty = 0, assetVal = 0, outStock = 0;
+
+            products.forEach(p => {
+                const q = parseInt(p.quantity) || 0;
+                totalQty += q;
+                assetVal += (parseFloat(p.price) || 0) * q;
+                if (q === 0) outStock++;
+            });
+
+            document.getElementById('m-tot-qty').innerText = totalQty;
+            document.getElementById('m-tot-assets').innerText = formatCurrency(assetVal);
+            document.getElementById('m-out-stock').innerText = outStock;
+
+            const grossRev = orders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+            document.getElementById('m-tot-rev').innerText = formatCurrency(grossRev);
+        }
+
+        function drawCharts() {
+            for(let key in chartInstancesList) {
+                if(chartInstancesList[key]) chartInstancesList[key].destroy();
+            }
+
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            const defaultOptions = {
+                responsive: true, maintainAspectRatio: false, color: textColor,
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                    y: { grid: { color: gridColor }, ticks: { color: textColor } }
+                },
+                plugins: { legend: { display: false } }
+            };
+
+            const createChart = (id, type, label, data, labels, colors) => {
+                const ctx = document.getElementById(id).getContext('2d');
+                let options = JSON.parse(JSON.stringify(defaultOptions));
+                if (type === 'pie') {
+                    delete options.scales;
+                    options.plugins.legend.display = true;
+                    options.plugins.legend.position = 'bottom';
+                    options.plugins.legend.labels = { color: textColor };
+                }
+
+                chartInstancesList[id] = new Chart(ctx, {
+                    type: type,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label, data: data, backgroundColor: colors,
+                            borderColor: isDark ? '#131b2f' : '#ffffff',
+                            borderWidth: type === 'pie' ? 2 : 0, borderRadius: type === 'bar' ? 4 : 0
+                        }]
+                    },
+                    options: options
+                });
+            };
+
+            createChart('c-daily-sales', 'bar', 'Daily Orders', [12,19,15,22,14,28,30], ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], '#2563eb');
+            const pend = globalDataCache.orders.filter(o => o.status === 'Pending').length;
+            const delv = globalDataCache.orders.filter(o => o.status === 'Delivered').length;
+            createChart('c-order-pie', 'pie', 'Status', [pend || 1, delv || 1], ['Pending', 'Delivered'], ['#f59e0b', '#10b981']);
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventory-tbody');
+            tbody.innerHTML = '';
+            
+            if (globalDataCache.products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted)">Matrix depot is empty.</td></tr>`;
+                return;
+            }
+
+            globalDataCache.products.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code style="color:var(--accent);">${p.sku || '---'}</code></td>
+                    <td><strong>${p.title}</strong></td>
+                    <td><span class="badge" style="background:var(--border-color);">${p.category}</span></td>
+                    <td style="font-weight:600;">${formatCurrency(p.price)}</td>
+                    <td style="color:${p.quantity <= 5 ? 'var(--danger)' : 'inherit'}; font-weight:bold;">${p.quantity}</td>
+                    <td><span class="badge" style="background:var(--accent-glow); color:var(--accent);">${p.status}</span></td>
+                    <td style="text-align:right;">
+                        <button class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="deleteProduct('${p.id}')">Del</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleProductForm() {
+            const form = document.getElementById('product-form-panel');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                document.getElementById('matrix-asset-form').reset();
+                document.getElementById('f-asset-id').value = '';
+            }
+        }
+
+        document.getElementById('matrix-asset-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('f-title').value.trim(),
+                category: document.getElementById('f-category').value,
+                price: parseFloat(document.getElementById('f-price').value),
+                currency: document.getElementById('f-currency').value.trim(),
+                quantity: parseInt(document.getElementById('f-qty').value),
+                sku: document.getElementById('f-sku').value.trim(),
+                status: document.getElementById('f-status').value,
+                image_url: document.getElementById('f-img').value.trim()
+            };
+
+            try {
+                const { error } = await window.Mwamini.supabase.from('products').insert([payload]);
+                if (error) throw error;
+                triggerToast("New asset deployed to ecosystem catalog.");
+                toggleProductForm();
+                await synchronizeGlobalData();
+            } catch(err) { triggerToast(`Database Error: ${err.message}`, true); }
+        });
+
+        async function deleteProduct(id) {
+            try {
+                const { error } = await window.Mwamini.supabase.from('products').delete().eq('id', id);
+                if (error) throw error;
+                triggerToast("Asset purged successfully.");
+                await synchronizeGlobalData();
+            } catch (err) { triggerToast(err.message, true); }
+        }
+
+        function renderOrdersTable() {
+            const tbody = document.getElementById('orders-tbody');
+            tbody.innerHTML = '';
+            
+            globalDataCache.orders.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${o.id.substring(0,8)}</code></td>
+                    <td>${o.user_id ? o.user_id.substring(0,12) + '...' : 'Guest'}</td>
+                    <td style="font-weight:700;">${formatCurrency(o.total_amount)}</td>
+                    <td><span class="badge" style="background:var(--accent-glow);">${o.status}</span></td>
+                    <td style="text-align:right;">
+                        <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="updateOrderStatus('${o.id}', 'Processing')">Process</button>
+                        <button class="btn btn-primary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="updateOrderStatus('${o.id}', 'Delivered')">Approve</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function updateOrderStatus(id, newStatus) {
+            try {
+                const { error } = await window.Mwamini.supabase.from('orders').update({ status: newStatus }).eq('id', id);
+                if (error) throw error;
+                triggerToast(`Contract allocation updated to ${newStatus}`);
+                await synchronizeGlobalData();
+            } catch (err) { triggerToast(err.message, true); }
+        }
+
+        function renderUsersTable() {
             const tbody = document.getElementById('users-tbody');
-            tbody.innerHTML = users.map(u => `
-                <tr>
+            tbody.innerHTML = '';
+            globalDataCache.users.forEach(u => {
+                const tr = document.createElement('tr');
+                let roleColor = u.role === 'Admin' ? 'badge-admin' : (u.role === 'Operator' ? 'badge-operator' : 'badge-guest');
+                tr.innerHTML = `
                     <td>${u.email}</td>
-                    <td><span class="${u.role === 'Admin' ? 'badge-admin' : 'badge-operator'}">${u.role}</span></td>
-                    <td><button class="btn" onclick="toggleRole('${u.id}', '${u.role}')">Toggle</button></td>
-                </tr>
-            `).join('');
+                    <td>${u.full_name || 'N/A'}</td>
+                    <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    <td><span class="badge ${roleColor}">${u.role || 'Guest'}</span></td>
+                    <td style="text-align:right;">
+                        <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="toggleUserRole('${u.id}', '${u.role}')">Toggle Role</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        async function toggleRole(id, current) {
-            const newRole = current === 'Admin' ? 'Operator' : 'Admin';
-            await window.Mwamini.supabase.from('profiles').update({ role: newRole }).eq('id', id);
-            loadAdminData();
+        async function toggleUserRole(id, currentRole) {
+            const newRole = currentRole === 'Admin' ? 'Operator' : 'Admin';
+            try {
+                const { error } = await window.Mwamini.supabase.from('profiles').update({ role: newRole }).eq('id', id);
+                if (error) throw error;
+                triggerToast(`Role updated to ${newRole}`);
+                await synchronizeGlobalData();
+            } catch (err) { triggerToast(err.message, true); }
         }
-
-        window.onload = secureGateway;
     </script>
 </body>
 </html>
