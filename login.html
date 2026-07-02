@@ -11,61 +11,17 @@
     
     <style>
         .auth-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 1rem;
             background: radial-gradient(circle at top right, var(--accent-glow), transparent 40%), var(--bg-main);
         }
-
-        .auth-container {
-            width: 100%;
-            max-width: 420px;
-            padding: 2.5rem;
-        }
-
-        .auth-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .auth-header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-switcher {
-            display: flex;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .form-switcher button {
-            flex: 1;
-            background: none;
-            border: none;
-            padding: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .form-switcher button.active {
-            color: var(--accent);
-            border-bottom: 2px solid var(--accent);
-        }
-
-        #register-form {
-            display: none;
-        }
-
-        .theme-toggle-fixed {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-        }
+        .auth-container { width: 100%; max-width: 420px; padding: 2.5rem; }
+        .auth-header { text-align: center; margin-bottom: 2rem; }
+        .form-switcher { display: flex; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); }
+        .form-switcher button { flex: 1; background: none; border: none; padding: 0.75rem; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: var(--transition); }
+        .form-switcher button.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        #register-form { display: none; }
+        .theme-toggle-fixed { position: fixed; top: 1rem; right: 1rem; }
     </style>
 </head>
 <body>
@@ -101,9 +57,7 @@
                     <label for="login-password">Security Keyphrase</label>
                     <input type="password" id="login-password" class="search-input" required autocomplete="current-password" placeholder="••••••••">
                 </div>
-                <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                    Initialize Verification
-                </button>
+                <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Initialize Verification</button>
             </form>
 
             <form id="register-form">
@@ -119,9 +73,7 @@
                     <label for="reg-password">Establish Keyphrase</label>
                     <input type="password" id="reg-password" class="search-input" required autocomplete="new-password" placeholder="Min 8 characters">
                 </div>
-                <button type="submit" id="reg-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                    Provision Credentials
-                </button>
+                <button type="submit" id="reg-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Provision Credentials</button>
             </form>
         </div>
     </main>
@@ -130,11 +82,9 @@
 
     <script src="supabase-config.js"></script>
     <script>
-        // Handle UI toggles for Guest mode
+        // UI Helpers
         document.getElementById('auth-role').addEventListener('change', function() {
             const isGuest = this.value === 'guest';
-            document.getElementById('login-email').required = !isGuest;
-            document.getElementById('login-password').required = !isGuest;
             document.getElementById('email-group').style.display = isGuest ? 'none' : 'flex';
             document.getElementById('password-group').style.display = isGuest ? 'none' : 'flex';
         });
@@ -153,18 +103,10 @@
             toast.className = `toast-notification ${type} active`;
             toast.innerText = message;
             container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.remove('active');
-                setTimeout(() => toast.remove(), 400);
-            }, 4000);
+            setTimeout(() => { toast.classList.remove('active'); setTimeout(() => toast.remove(), 400); }, 4000);
         }
 
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            const root = document.documentElement;
-            const currentTheme = root.getAttribute('data-theme');
-            root.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
-        });
-
+        // Auth Logic
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('login-btn');
@@ -172,44 +114,36 @@
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
 
-            // Guest Bypass Logic
-            if (role === 'guest') {
-                showToast("Guest session initiated. Routing to public portal...");
-                setTimeout(() => window.location.replace('index.html'), 1000);
-                return;
-            }
-
-            // Strict Admin Validation
+            // 1. Admin Verification Guard
             if (role === 'admin' && email !== 'soulaimanmwamini0@gmail.com') {
-                return showToast("Access Denied: Invalid administrator email.", 'danger');
+                return showToast("Access Denied: Admin role requires authorized email.", 'danger');
             }
 
-            btn.disabled = true;
-            btn.innerText = "Verifying...";
+            // 2. Guest Logic
+            if (role === 'guest') {
+                localStorage.setItem('mwamini_role', 'GUEST');
+                return window.location.replace('index.html');
+            }
 
+            // 3. Authenticated Roles (Operator/Admin)
+            btn.disabled = true; btn.innerText = "Verifying Identity...";
             try {
                 const { data, error } = await window.Mwamini.supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 
-                showToast(`Access Granted. Routing to ${role} mainframe...`);
+                localStorage.setItem('mwamini_role', role.toUpperCase());
+                showToast("Identity verified. Accessing mainframe...");
                 
-                // Route based on requested and validated role
                 setTimeout(() => {
-                    if (role === 'admin') {
-                        window.location.replace('admin.html');
-                    } else {
-                        window.location.replace('dashboard.html');
-                    }
+                    window.location.replace(role === 'admin' ? 'admin.html' : 'dashboard.html');
                 }, 1000);
-
             } catch (err) {
                 showToast(err.message, 'danger');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Initialize Verification";
+                btn.disabled = false; btn.innerText = "Initialize Verification";
             }
         });
 
+        // Registration Logic
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('reg-btn');
@@ -217,41 +151,20 @@
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
 
-            if (password.length < 8) {
-                return showToast("Security Keyphrase must be at least 8 characters.", 'danger');
-            }
-
-            btn.disabled = true;
-            btn.innerText = "Provisioning...";
-
+            btn.disabled = true; btn.innerText = "Provisioning...";
             try {
-                const { data, error } = await window.Mwamini.supabase.auth.signUp({
-                    email,
-                    password,
-                    options: { data: { full_name: name } }
-                });
-                
+                const { data, error } = await window.Mwamini.supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
                 if (error) throw error;
 
                 if (data.user) {
-                    await window.Mwamini.supabase.from('profiles').insert([{
-                        id: data.user.id,
-                        full_name: name,
-                        email: email,
-                        role: 'Operator',
-                        account_status: 'Active'
-                    }]);
+                    await window.Mwamini.supabase.from('profiles').insert([{ id: data.user.id, full_name: name, email: email, role: 'Operator', account_status: 'Active' }]);
                 }
-
-                showToast("Node registered successfully. Please login.");
+                showToast("Identity provisioned. Please log in.");
                 toggleAuthMode('login');
-                e.target.reset();
-
             } catch (err) {
                 showToast(err.message, 'danger');
             } finally {
-                btn.disabled = false;
-                btn.innerText = "Provision Credentials";
+                btn.disabled = false; btn.innerText = "Provision Credentials";
             }
         });
     </script>
