@@ -122,7 +122,13 @@
 
     <script src="supabase-config.js"></script>
     <script>
-        // --- UI Interactions ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            const session = await window.Mwamini.getSecureSession();
+            if (session?.user) {
+                routeUserBasedOnRole(window.Mwamini.role);
+            }
+        });
+
         function toggleAuthMode(mode) {
             const isLogin = mode === 'login';
             document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
@@ -143,14 +149,20 @@
             }, 4000);
         }
 
-        // Theme Management
         document.getElementById('theme-toggle').addEventListener('click', () => {
             const root = document.documentElement;
             const currentTheme = root.getAttribute('data-theme');
             root.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
         });
 
-        // --- Authentication Logic ---
+        function routeUserBasedOnRole(role) {
+            if (role === 'ADMIN') {
+                window.location.replace('admin.html');
+            } else {
+                window.location.replace('dashboard.html');
+            }
+        }
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('login-btn');
@@ -165,17 +177,10 @@
                 if (error) throw error;
                 
                 showToast("Access Granted. Routing to mainframe...");
-                
-                // Routing Logic based on Admin vs Customer
-                // For a robust system, check the 'profiles' table for role here.
-                const { data: profile } = await window.Mwamini.supabase.from('profiles').select('role').eq('id', data.user.id).single();
+                await window.Mwamini.getSecureSession();
                 
                 setTimeout(() => {
-                    if (profile && profile.role === 'Admin') {
-                        window.location.replace('admin.html');
-                    } else {
-                        window.location.replace('dashboard.html');
-                    }
+                    routeUserBasedOnRole(window.Mwamini.role);
                 }, 1000);
 
             } catch (err) {
@@ -209,13 +214,12 @@
                 
                 if (error) throw error;
 
-                // Provision initial profile record
                 if (data.user) {
                     await window.Mwamini.supabase.from('profiles').insert([{
                         id: data.user.id,
                         full_name: name,
                         email: email,
-                        role: 'Customer', // Default role
+                        role: 'OPERATOR',
                         account_status: 'Active'
                     }]);
                 }
