@@ -7,25 +7,111 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .dashboard-layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-        .sidebar { background: var(--bg-surface); border-right: 1px solid var(--border-color); padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-        .sidebar-brand { font-size: 1.2rem; font-weight: 900; margin-bottom: 2rem; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-        .panel-view { padding: 3rem; max-width: 1200px; width: 100%; margin: 0 auto; display: none; }
-        .panel-view.active { display: block; }
-        .nav-btn { width: 100%; text-align: left; justify-content: flex-start; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: none; }
-        .nav-btn.active { background: var(--accent); color: #fff; }
-        .chat-terminal { display: grid; grid-template-rows: auto 400px auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-surface); overflow: hidden; }
-        .chat-header { background: var(--bg-main); padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .chat-logs { padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background: rgba(0,0,0,0.2); }
-        .message-bubble { max-width: 70%; padding: 0.85rem 1.2rem; border-radius: var(--radius-md); font-size: 0.95rem; line-height: 1.4; }
-        .msg-outbound { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg-inbound { background: var(--border-color); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
-        .indicator-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .sidebar-brand {
+            font-size: 1.2rem;
+            font-weight: 900;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        .panel-view {
+            padding: 3rem;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            display: none;
+        }
+        .panel-view.active {
+            display: block;
+        }
+        .nav-btn {
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+            padding: 0.85rem 1rem;
+            border-radius: var(--radius-sm);
+        }
+        .nav-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .chat-terminal {
+            display: grid;
+            grid-template-rows: auto 400px auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-surface);
+            overflow: hidden;
+        }
+        .chat-header {
+            background: var(--bg-main);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-logs {
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: rgba(0,0,0,0.2);
+        }
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.85rem 1.2rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .msg-outbound {
+            background: var(--accent);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .msg-inbound {
+            background: var(--border-color);
+            color: var(--text-main);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        .data-table th, .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background: var(--bg-surface);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-layout" id="dashboard-mainframe" style="display:none;">
+    <div class="dashboard-layout">
         <aside class="sidebar">
             <div class="sidebar-brand">OPERATOR CONSOLE</div>
             <button class="btn nav-btn active" id="btn-profile" onclick="activateView('profile')">Profile Registry</button>
@@ -37,7 +123,7 @@
             
             <div style="margin-top:auto; display:flex; flex-direction:column; gap:0.5rem;">
                 <a href="index.html" class="btn" style="text-align:center; text-decoration:none;">Ecosystem Home</a>
-                <button class="btn btn-danger" id="logout-trigger" style="width: 100%;">Terminate Session</button>
+                <button class="btn" id="logout-trigger" style="background:var(--danger); color:#fff; border:none;">Terminate Session</button>
             </div>
         </aside>
 
@@ -46,19 +132,20 @@
             <section id="view-profile" class="panel-view active">
                 <h2>Operator Profile Registry</h2>
                 <p style="color:var(--text-muted)">Secure operational metadata tied directly to your cryptographic authentication signature.</p>
+                
                 <div class="glass-panel" style="padding:2.5rem; margin-top:2rem; max-width:600px;">
                     <form id="profile-registry-form">
                         <div class="input-group">
                             <label>Assigned Account ID Link</label>
-                            <input type="text" id="prof-id" class="form-control" readonly style="opacity:0.6;">
+                            <input type="text" id="prof-id" class="search-input" readonly style="opacity:0.6;">
                         </div>
                         <div class="input-group">
                             <label>Full Verified Operator Name</label>
-                            <input type="text" id="prof-name" class="form-control" required>
+                            <input type="text" id="prof-name" class="search-input" required>
                         </div>
                         <div class="input-group">
                             <label>Communications Email Routing</label>
-                            <input type="email" id="prof-email" class="form-control" readonly style="opacity:0.6;">
+                            <input type="email" id="prof-email" class="search-input" readonly style="opacity:0.6;">
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top:1rem; width:100%;">Commit Parameter Updates</button>
                     </form>
@@ -68,20 +155,18 @@
             <section id="view-orders" class="panel-view">
                 <h2>Fulfillment Allocation History</h2>
                 <p style="color:var(--text-muted)">Real-time structural state tracking for all directed supply pipeline contracts.</p>
-                <div class="data-table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Contract ID Reference</th>
-                                <th>Allocation Timestamp</th>
-                                <th>Procured Commodities</th>
-                                <th>Total Capital Valuation</th>
-                                <th>Fulfillment State Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-log-payload"></tbody>
-                    </table>
-                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Contract ID Reference</th>
+                            <th>Allocation Timestamp</th>
+                            <th>Procured Commodities</th>
+                            <th>Total Capital Valuation</th>
+                            <th>Fulfillment State Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-log-payload"></tbody>
+                </table>
             </section>
 
             <section id="view-chat" class="panel-view">
@@ -89,15 +174,11 @@
                 <p style="color:var(--text-muted); margin-bottom:1.5rem;">Cryptographically synchronized data stream directly communicating with Command Administrators.</p>
                 <div class="chat-terminal">
                     <div class="chat-header">
-                        <div style="display:flex; align-items:center; gap:0.5rem;">
-                            <span class="indicator-dot" style="background:var(--success)"></span>
-                            <strong>System Control Room</strong>
-                        </div>
-                        <span id="chat-typing-vector" style="font-size:0.8rem; color:var(--accent); font-style:italic;"></span>
+                        <strong>System Control Room</strong>
                     </div>
                     <div class="chat-logs" id="chat-logs-viewport"></div>
                     <form id="chat-input-matrix" style="display:flex; border-top:1px solid var(--border-color);">
-                        <input type="text" id="chat-message-field" class="form-control" placeholder="Type transmission payload..." style="border:none; border-radius:0;" required>
+                        <input type="text" id="chat-message-field" class="search-input" placeholder="Type transmission payload..." style="border:none; border-radius:0;" required>
                         <button type="submit" class="btn btn-primary" style="border-radius:0; padding:0 2rem;">Transmit</button>
                     </form>
                 </div>
@@ -112,11 +193,11 @@
                         <form id="ticket-creation-form" style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
                             <div class="input-group">
                                 <label>Target Subject Line</label>
-                                <input type="text" id="tkt-subject" class="form-control" placeholder="e.g. Telemetry Error on SKU 44" required>
+                                <input type="text" id="tkt-subject" class="search-input" placeholder="e.g. Telemetry Error on SKU 44" required>
                             </div>
                             <div class="input-group">
                                 <label>Granular Structural Detail Description</label>
-                                <textarea id="tkt-detail" class="form-control" placeholder="Provide raw logs or behavioral explanation..." style="height:120px;" required></textarea>
+                                <textarea id="tkt-detail" class="search-input" placeholder="Provide raw logs or behavioral explanation..." style="height:120px;" required></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary">File Ticket Vector</button>
                         </form>
@@ -131,7 +212,7 @@
             <section id="view-wishlist" class="panel-view">
                 <h2>Monitored Commodity Matrix (Wishlist)</h2>
                 <p style="color:var(--text-muted)">High-priority items flagged by the operator for rapid procurement prioritization loops.</p>
-                <div id="wishlist-matrix-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem; margin-top:2rem;"></div>
+                <div id="wishlist-matrix-grid" class="data-table" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.5rem; margin-top:2rem;"></div>
             </section>
 
             <section id="view-security" class="panel-view">
@@ -141,7 +222,7 @@
                     <form id="security-keyphrase-form">
                         <div class="input-group">
                             <label>New Secret Keyphrase Formulation</label>
-                            <input type="password" id="sec-pass" class="form-control" required minlength="8" placeholder="••••••••">
+                            <input type="password" id="sec-pass" class="search-input" required minlength="8" placeholder="••••••••">
                         </div>
                         <button type="submit" class="btn btn-primary" style="width:100%">Rotate Access Credentials</button>
                     </form>
@@ -155,18 +236,21 @@
     <script src="supabase-config.js"></script>
     <script>
         let currentOperator = null;
-        let activeChatSubscription = null;
 
         document.addEventListener("DOMContentLoaded", async () => {
             const session = await window.Mwamini.getSecureSession();
-            if (!session?.user || window.Mwamini.role !== 'OPERATOR') {
+            if (!session?.user) {
                 window.location.replace("login.html");
                 return;
             }
-            
-            document.getElementById('dashboard-mainframe').style.display = 'grid';
             currentOperator = session.user;
             
+            const role = await window.Mwamini.getUserRole(currentOperator.id);
+            if (role === 'Admin') {
+                window.location.replace("admin.html");
+                return;
+            }
+
             setupGlobalLogouts();
             await loadProfileDataMatrix();
             await populateHistoricalOrders();
@@ -192,7 +276,6 @@
         function setupGlobalLogouts() {
             document.getElementById('logout-trigger').addEventListener('click', async () => {
                 await window.Mwamini.supabase.auth.signOut();
-                window.location.replace("login.html");
             });
         }
 
@@ -200,6 +283,7 @@
             try {
                 const { data, error } = await window.Mwamini.supabase.from('profiles').select('*').eq('id', currentOperator.id).single();
                 if (error && error.code !== 'PGRST116') throw error;
+                
                 document.getElementById('prof-id').value = currentOperator.id;
                 document.getElementById('prof-email').value = currentOperator.email;
                 if (data) document.getElementById('prof-name').value = data.full_name || '';
@@ -208,12 +292,10 @@
 
         document.getElementById('profile-registry-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const name = document.getElementById('prof-name').value.trim();
             try {
                 const { error } = await window.Mwamini.supabase.from('profiles').upsert({
-                    id: currentOperator.id,
-                    full_name: document.getElementById('prof-name').value.trim(),
-                    email: currentOperator.email,
-                    updated_at: new Date().toISOString()
+                    id: currentOperator.id, full_name: name, email: currentOperator.email, updated_at: new Date().toISOString()
                 });
                 if (error) throw error;
                 triggerDashboardToast("Metadata synchronization committed.");
@@ -237,7 +319,7 @@
                         <td>${new Date(o.created_at).toLocaleDateString()}</td>
                         <td>${itemsParsed}</td>
                         <td style="font-weight:700; color:var(--accent);">${o.total_amount}</td>
-                        <td><span class="badge" style="background:var(--accent-glow);">${o.status}</span></td>
+                        <td><span class="tag" style="background:var(--accent-glow);">${o.status}</span></td>
                     `;
                     target.appendChild(tr);
                 });
@@ -254,7 +336,7 @@
                 listContainer.scrollTop = listContainer.scrollHeight;
             }
 
-            activeChatSubscription = window.Mwamini.supabase.channel('public:messages')
+            window.Mwamini.supabase.channel('public:messages')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                     const msg = payload.new;
                     if (msg.sender_id === currentOperator.id || msg.receiver_id === currentOperator.id) {
@@ -266,8 +348,9 @@
 
         function appendRenderedMessage(msg) {
             const container = document.getElementById('chat-logs-viewport');
+            const isOut = msg.sender_id === currentOperator.id;
             const bubble = document.createElement('div');
-            bubble.className = `message-bubble ${msg.sender_id === currentOperator.id ? 'msg-outbound' : 'msg-inbound'}`;
+            bubble.className = `message-bubble ${isOut ? 'msg-outbound' : 'msg-inbound'}`;
             bubble.innerText = msg.text;
             container.appendChild(bubble);
         }
@@ -275,10 +358,11 @@
         document.getElementById('chat-input-matrix').addEventListener('submit', async (e) => {
             e.preventDefault();
             const field = document.getElementById('chat-message-field');
-            if(!field.value.trim()) return;
+            const text = field.value.trim();
+            if(!text) return;
             try {
                 const { error } = await window.Mwamini.supabase.from('messages').insert([{
-                    sender_id: currentOperator.id, receiver_id: 'SYSTEM_ADMIN_CORE_CENTRAL', text: field.value.trim(), is_read: false
+                    sender_id: currentOperator.id, receiver_id: 'SYSTEM_ADMIN_CORE_CENTRAL', text: text, is_read: false
                 }]);
                 if (error) throw error;
                 field.value = '';
@@ -287,12 +371,11 @@
 
         document.getElementById('ticket-creation-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const subject = document.getElementById('tkt-subject').value.trim();
+            const detail = document.getElementById('tkt-detail').value.trim();
             try {
                 const { error } = await window.Mwamini.supabase.from('support_tickets').insert([{
-                    user_id: currentOperator.id,
-                    subject: document.getElementById('tkt-subject').value.trim(),
-                    detail: document.getElementById('tkt-detail').value.trim(),
-                    status: 'Open'
+                    user_id: currentOperator.id, subject, detail, status: 'Open'
                 }]);
                 if (error) throw error;
                 triggerDashboardToast("Support track vector queued for admin review.");
@@ -306,17 +389,15 @@
             stream.innerHTML = '';
             try {
                 const { data } = await window.Mwamini.supabase.from('support_tickets').select('*').eq('user_id', currentOperator.id).order('created_at', {ascending:false});
-                if(!data || data.length === 0) {
-                    stream.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No reported system exceptions filed.</p>`;
-                    return;
-                }
+                if(!data || data.length === 0) return stream.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No reported system exceptions filed.</p>`;
                 data.forEach(t => {
                     const block = document.createElement('div');
                     block.className = 'glass-panel';
                     block.style.padding = '1rem';
                     block.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong>${t.subject}</strong><span class="badge" style="background:var(--accent-glow);">${t.status}</span>
+                            <strong>${t.subject}</strong>
+                            <span class="tag" style="background:var(--accent-glow);">${t.status}</span>
                         </div>
                         <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.5rem;">${t.detail}</p>
                     `;
@@ -330,10 +411,7 @@
             grid.innerHTML = '';
             try {
                 const { data } = await window.Mwamini.supabase.from('wishlist').select('id, products(*)').eq('user_id', currentOperator.id);
-                if(!data || data.length === 0) {
-                    grid.innerHTML = `<p style="color:var(--text-muted)">No commodities currently assigned to custom tracking parameters.</p>`;
-                    return;
-                }
+                if(!data || data.length === 0) return grid.innerHTML = `<p style="color:var(--text-muted)">No commodities currently assigned to custom tracking parameters.</p>`;
                 data.forEach(w => {
                     if(!w.products) return;
                     const c = w.products;
@@ -343,7 +421,7 @@
                     item.innerHTML = `
                         <h4>${c.title}</h4>
                         <p style="color:var(--accent); font-weight:700;">${c.price} ${c.currency || 'USD'}</p>
-                        <button class="btn btn-danger" style="width:100%; font-size:0.8rem; margin-top:0.5rem;" onclick="dropWishlistAsset('${w.id}')">Erase Tracking Sequence</button>
+                        <button class="btn" style="background:var(--danger); color:white; border:none; width:100%; font-size:0.8rem; margin-top:0.5rem;" onclick="dropWishlistAsset('${w.id}')">Erase Tracking Sequence</button>
                     `;
                     grid.appendChild(item);
                 });
@@ -361,8 +439,9 @@
 
         document.getElementById('security-keyphrase-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const password = document.getElementById('sec-pass').value;
             try {
-                const { error } = await window.Mwamini.supabase.auth.updateUser({ password: document.getElementById('sec-pass').value });
+                const { error } = await window.Mwamini.supabase.auth.updateUser({ password });
                 if (error) throw error;
                 triggerDashboardToast("Security profile updated. Authentication keyphrase rotated safely.");
                 e.target.reset();
