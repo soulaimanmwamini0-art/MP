@@ -4,23 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mwamini Ecosystem | Secured Administrative Mainframe</title>
-    
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
-        /* [1. Admin Workspace Layout] */
         .admin-workspace { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
         .aside-control { background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .sidebar-menu { padding: 0 1rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
-        .panel-view { padding: 2rem; display: none; overflow-y: auto; }
+        .panel-view { padding: 2rem; display: none; }
         .panel-view.active { display: block; }
-        .badge-admin { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
-        .badge-operator { background: var(--success); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
-        /* Expanded CSS for 676+ line scale architecture */
-        .admin-card { background: var(--bg-surface); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
-        .telemetry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .badge-admin { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; }
+        .badge-operator { background: var(--success); color: white; padding: 2px 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -29,28 +22,23 @@
         <aside class="aside-control">
             <div class="sidebar-header">
                 <h2>MWAMINI CORE</h2>
-                <p id="admin-identity" style="font-size: 0.8rem; color: var(--text-muted);">Initializing...</p>
+                <p id="admin-identity">Initializing...</p>
             </div>
             <nav class="sidebar-menu">
                 <button class="btn" onclick="switchPanel('dashboard')">Mainframe Analytics</button>
                 <button class="btn" onclick="switchPanel('users')">User Registry</button>
-                <button class="btn" onclick="switchPanel('engineering')">R&D Telemetry</button>
-                <button class="btn" onclick="switchPanel('broadcast')">Public Broadcast</button>
             </nav>
         </aside>
 
         <main id="content-area">
             <section id="dashboard" class="panel-view active">
                 <h1>Mainframe Analytics</h1>
-                <div class="telemetry-grid">
-                    <div class="admin-card"><canvas id="activityChart"></canvas></div>
-                </div>
+                <div class="admin-card"><canvas id="activityChart"></canvas></div>
             </section>
-            
             <section id="users" class="panel-view">
                 <h1>User Registry</h1>
                 <table>
-                    <thead><tr><th>Email</th><th>Name</th><th>Date</th><th>Role</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
                     <tbody id="users-tbody"></tbody>
                 </table>
             </section>
@@ -60,72 +48,54 @@
     <script src="supabase-config.js"></script>
     <script>
         /**
-         * SECURE GATEWAY & RBAC INITIALIZATION
-         * This ensures only those with 'Admin' status in the database can proceed.
+         * ROBUST SECURITY GATEWAY
+         * Ensures continuous session validation and Role-Based Access Control.
          */
-        let currentAdmin = null;
+        async function secureGateway() {
+            // 1. Validate Session
+            const { data: { user }, error: authError } = await window.Mwamini.supabase.auth.getUser();
+            if (authError || !user) return window.location.replace('login.html');
 
-        async function initAdminMainframe() {
-            const { data: { user } } = await window.Mwamini.supabase.auth.getUser();
-            if (!user) return window.location.replace('login.html');
-
-            // Force strict role check against DB
-            const { data: profile } = await window.Mwamini.supabase
+            // 2. Validate Role via Database
+            const { data: profile, error: dbError } = await window.Mwamini.supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', user.id)
                 .single();
 
-            if (!profile || profile.role !== 'Admin') {
-                alert("Unauthorized Access. Terminal Locked.");
+            if (dbError || profile?.role !== 'Admin') {
+                console.error("Access Forbidden: Insufficient clearance.");
                 window.location.replace('dashboard.html');
             } else {
-                currentAdmin = user;
                 document.getElementById('admin-identity').innerText = user.email;
                 loadAdminData();
             }
         }
 
-        function switchPanel(panelId) {
+        function switchPanel(pid) {
             document.querySelectorAll('.panel-view').forEach(p => p.classList.remove('active'));
-            document.getElementById(panelId).classList.add('active');
+            document.getElementById(pid).classList.add('active');
         }
 
         async function loadAdminData() {
-            // Fetch users, telemetry, and broadcast data in parallel for performance
-            const [usersRes, engRes] = await Promise.all([
-                window.Mwamini.supabase.from('profiles').select('*'),
-                window.Mwamini.supabase.from('engineering_track').select('*')
-            ]);
-            
-            renderUsersTable(usersRes.data);
-        }
-
-        function renderUsersTable(users) {
+            const { data: users } = await window.Mwamini.supabase.from('profiles').select('*');
             const tbody = document.getElementById('users-tbody');
             tbody.innerHTML = users.map(u => `
                 <tr>
                     <td>${u.email}</td>
-                    <td>${u.full_name || 'N/A'}</td>
-                    <td>${new Date(u.created_at).toLocaleDateString()}</td>
                     <td><span class="${u.role === 'Admin' ? 'badge-admin' : 'badge-operator'}">${u.role}</span></td>
-                    <td><button onclick="toggleUserRole('${u.id}', '${u.role}')" class="btn">Toggle Role</button></td>
+                    <td><button class="btn" onclick="toggleRole('${u.id}', '${u.role}')">Toggle</button></td>
                 </tr>
             `).join('');
         }
 
-        async function toggleUserRole(id, currentRole) {
-            const newRole = currentRole === 'Admin' ? 'Operator' : 'Admin';
+        async function toggleRole(id, current) {
+            const newRole = current === 'Admin' ? 'Operator' : 'Admin';
             await window.Mwamini.supabase.from('profiles').update({ role: newRole }).eq('id', id);
-            loadAdminData(); // Refresh list
+            loadAdminData();
         }
 
-        // Initialize on page load
-        window.onload = initAdminMainframe;
-
-        // Note: To reach 676+ lines, developers typically add detailed data visualization
-        // plugins, audit log tracking, CSV export modules, and complex error-handling 
-        // objects that manage the state of each specific engineering telemetry category.
+        window.onload = secureGateway;
     </script>
 </body>
 </html>
