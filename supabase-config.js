@@ -11,14 +11,13 @@ class MwaminiCore {
         this.supabase = null;
         this.session = null;
         this.user = null;
-        this.role = 'GUEST';
         this.init();
     }
 
     init() {
         if (typeof supabase === 'undefined') {
             console.error("[Mwamini Core] FATAL: Supabase CDN script missing.");
-            this.renderErrorState("CRITICAL: Database engine disconnected. Check CDN.");
+            this.renderErrorState();
             return;
         }
 
@@ -41,37 +40,19 @@ class MwaminiCore {
     }
 
     attachAuthListeners() {
-        this.supabase.auth.onAuthStateChange(async (event, session) => {
+        this.supabase.auth.onAuthStateChange((event, session) => {
             this.session = session;
             this.user = session?.user || null;
             
-            if (this.user) {
-                await this.fetchUserRole();
-            } else {
-                this.role = 'GUEST';
-            }
-            
             if (event === 'SIGNED_OUT') {
                 this.purgeLocalState();
-                const currentPath = window.location.pathname;
-                if (!currentPath.includes('login.html') && !currentPath.includes('index.html') && currentPath !== '/') {
+                const publicRoutes = ['login.html', 'index.html'];
+                const isPublicRoute = publicRoutes.some(route => window.location.pathname.includes(route));
+                if (!isPublicRoute) {
                     window.location.replace('login.html');
                 }
             }
         });
-    }
-
-    async fetchUserRole() {
-        if (!this.user) return 'GUEST';
-        try {
-            const { data, error } = await this.supabase.from('profiles').select('role').eq('id', this.user.id).single();
-            if (error && error.code !== 'PGRST116') throw error;
-            this.role = data?.role ? data.role.toUpperCase() : 'OPERATOR'; 
-            return this.role;
-        } catch (error) {
-            console.error("[Mwamini Core] Role fetch failed:", error);
-            return 'GUEST';
-        }
     }
 
     async getSecureSession() {
@@ -80,27 +61,30 @@ class MwaminiCore {
             console.error("[Mwamini Core] Session validation error:", error);
             return null;
         }
-        if (session?.user) {
-            this.user = session.user;
-            await this.fetchUserRole();
-        }
         return session;
+    }
+
+    async getUserRole(userId) {
+        try {
+            const { data, error } = await this.supabase.from('profiles').select('role').eq('id', userId).single();
+            if (error) throw error;
+            return data?.role || 'Guest';
+        } catch (error) {
+            console.error("[Mwamini Core] Role verification failed:", error);
+            return 'Guest';
+        }
     }
 
     purgeLocalState() {
         localStorage.removeItem('mwamini_app_state');
         sessionStorage.clear();
-        this.user = null;
-        this.session = null;
-        this.role = 'GUEST';
     }
 
-    renderErrorState(message) {
+    renderErrorState() {
         const toast = document.createElement('div');
         toast.className = 'toast-notification active danger';
-        toast.innerText = message || "CRITICAL: Secure connection to database failed.";
+        toast.innerText = "CRITICAL: Secure connection to database failed.";
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 5000);
     }
 }
 
