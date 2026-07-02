@@ -122,13 +122,6 @@
 
     <script src="supabase-config.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const session = await window.Mwamini.getSecureSession();
-            if (session?.user) {
-                routeUserBasedOnRole(window.Mwamini.role);
-            }
-        });
-
         function toggleAuthMode(mode) {
             const isLogin = mode === 'login';
             document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
@@ -155,14 +148,6 @@
             root.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
         });
 
-        function routeUserBasedOnRole(role) {
-            if (role === 'ADMIN') {
-                window.location.replace('admin.html');
-            } else {
-                window.location.replace('dashboard.html');
-            }
-        }
-
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('login-btn');
@@ -177,10 +162,15 @@
                 if (error) throw error;
                 
                 showToast("Access Granted. Routing to mainframe...");
-                await window.Mwamini.getSecureSession();
+                
+                const role = await window.Mwamini.getUserRole(data.user.id);
                 
                 setTimeout(() => {
-                    routeUserBasedOnRole(window.Mwamini.role);
+                    if (role === 'Admin') {
+                        window.location.replace('admin.html');
+                    } else {
+                        window.location.replace('dashboard.html');
+                    }
                 }, 1000);
 
             } catch (err) {
@@ -219,7 +209,7 @@
                         id: data.user.id,
                         full_name: name,
                         email: email,
-                        role: 'OPERATOR',
+                        role: 'Operator',
                         account_status: 'Active'
                     }]);
                 }
